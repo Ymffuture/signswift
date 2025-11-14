@@ -1,10 +1,29 @@
-import { NextApiRequest } from 'next'
 import jwt from 'jsonwebtoken'
 import cookie from 'cookie'
 import { dbConnect } from './dbConnect'
 import User, { IUser } from '../models/User'
+import type { NextApiResponse, NextApiRequest } from 'next'
 
 const TOKEN_NAME = 'token'
+
+// Export these explicitly
+export function setTokenCookie(res: NextApiResponse, token: string) {
+  const serialized = cookie.serialize(TOKEN_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  })
+  res.setHeader('Set-Cookie', serialized)
+}
+
+export function removeTokenCookie(res: NextApiResponse) {
+  res.setHeader(
+    'Set-Cookie',
+    cookie.serialize(TOKEN_NAME, '', { maxAge: -1, path: '/' })
+  )
+}
 
 export async function getUserFromReq(req: NextApiRequest): Promise<IUser | null> {
   const cookies = cookie.parse(req.headers.cookie || '')
@@ -14,13 +33,8 @@ export async function getUserFromReq(req: NextApiRequest): Promise<IUser | null>
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as { sub: string }
     await dbConnect()
-    
-    // **Specify the type for lean(): Partial<IUser>**
     const user = await User.findById(payload.sub).lean<Partial<IUser>>()
-    
     if (!user) return null
-
-    // Convert Partial<IUser> to IUser safely
     return user as IUser
   } catch {
     return null

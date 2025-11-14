@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         <h1>${escapeHtml(contract.title)}</h1>
         <pre>${escapeHtml(contract.text)}</pre>
         <h3>Creator</h3>
-        <div>Name: ${escapeHtml(contract.creatorSnapshot?.name || contract.creator?.name || '')}</div>
+        <div>Name: ${escapeHtml(contract.creatorSnapshot?.name || '')}</div>
         <div>ID: ${escapeHtml(contract.creatorSnapshot?.idNumber || '')}</div>
         ${contract.creatorSignatureUrl ? `<img class="sig" src="${contract.creatorSignatureUrl}" />` : ''}
         <h3>Signer</h3>

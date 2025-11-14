@@ -4,6 +4,7 @@ import { dbConnect } from '../../../lib/dbConnect';
 import ContractModel from '../../../models/Contract';
 import { getUserFromReq } from '../../../lib/auth';
 import cloudinary from '../../../utils/cloudinary';
+import { Types } from "mongoose";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -45,7 +46,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (hasSignerSigned)
         return res.status(400).json({ ok: false, message: "Signer already signed" });
 
-      contract.signer = user._id;
+    //  contract.signer = user._id;
+      contract.signer = user._id as unknown as Types.ObjectId;
+
       contract.signerSignatureUrl = uploadRes.secure_url;
       contract.signerSnapshot = {
         name: user.name,

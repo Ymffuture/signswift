@@ -1,25 +1,45 @@
 // lib/dbConnect.ts
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI as string;
-if (!MONGODB_URI) throw new Error('Please define MONGODB_URI in .env.local');
-
-type Cached = { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null };
-declare global {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-  var mongooseCache: Cached | undefined;
+const MONGODB_URI = process.env.MONGODB_URI!;
+if (!MONGODB_URI) {
+  throw new Error("❌ MONGODB_URI not found in environment variables");
 }
 
-let cached = global.mongooseCache;
-if (!cached) global.mongooseCache = { conn: null, promise: null };
-cached = global.mongooseCache!;
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
+
+declare global {
+  // Ensures global caching survives hot reloads in dev
+  // and avoids TypeScript "possibly undefined" errors
+  var mongooseCache: MongooseCache | undefined;
+}
+
+let cached: MongooseCache = global.mongooseCache || {
+  conn: null,
+  promise: null,
+};
+
+global.mongooseCache = cached;
 
 export async function dbConnect() {
-  if (cached.conn) return cached.conn;
-  if (!cached.promise) {
-    const opts = { bufferCommands: false, autoIndex: false } as mongoose.ConnectOptions;
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => m);
+  // Return existing connection
+  if (cached.conn) {
+    return cached.conn;
   }
+
+  // Create a new connection if not already connecting
+  if (!cached.promise) {
+    cached.promise = mongoose
+      .connect(MONGODB_URI, {
+        bufferCommands: false,
+        autoIndex: true,
+      })
+      .then((mongoose) => mongoose);
+  }
+
   cached.conn = await cached.promise;
   return cached.conn;
 }
